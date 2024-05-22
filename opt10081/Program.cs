@@ -83,6 +83,7 @@ namespace opt10081
                             int ret = a.CommRqData(rqname, "opt10081", 0, scrno);
                             if(ret != 0)
                             {
+                                Console.Error.WriteLine(ret.ToString());
                                 throw new Exception(ret.ToString());
                             }
 
