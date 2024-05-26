@@ -1,6 +1,7 @@
 ﻿using AxKHOpenAPILib;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
@@ -20,7 +21,7 @@ namespace opt10081
 
         static void oncommconnect()
         {
-            while (true)
+            while (api != null && !api.IsDisposed)
             {
                 Thread.Sleep(1);
                 Application.DoEvents();
@@ -119,6 +120,22 @@ namespace opt10081
             return "100" + __scrno;
         }
 
+        static void exit()
+        {
+            api.Dispose();
+            api = null;
+            mainth.Abort();
+            Application.Exit();
+            Environment.Exit(0);
+            Process.GetCurrentProcess().Kill();
+        }
+
+        static void exit2(object reason)
+        {
+            Console.Error.WriteLine(reason);
+            exit();
+        }
+
         static void connected()
         {
             var target = normal();
@@ -134,28 +151,55 @@ namespace opt10081
                 api.SetInputValue("수정주가구분", "0");
                 string rqname = newrqn();
                 string scrno = newscr();
+                dataex = null;
                 int ret = api.CommRqData(rqname, "opt10081", 0, scrno);
                 if (ret != 0)
                 {
-                    Console.Error.WriteLine(ret.ToString());
-                    Application.Exit();
-                    Environment.Exit(0);
+                    exit2(ret);
                     return;
                 }
 
-                Thread.Sleep(1);
+                // wait until data arrives
+                while(dataex == null)
+                {
+                    Thread.Sleep(1);
+                    Application.DoEvents();
+                }
+
+                // TODO: process data
+
+                dataex = null;
+
+                if (i % 100 == 99)
+                {
+                    api = newapi();
+                    api.OnReceiveTrData += Api_OnReceiveTrData;
+                }
+
+                // Wait 200ms to get idle
+                Thread.Sleep(200);
+
                 i++;
             }
-
         }
+
+        static object[,] dataex;
 
         private static void Api_OnReceiveTrData(object sender, _DKHOpenAPIEvents_OnReceiveTrDataEvent e)
         {
             object commdataex = api.GetCommDataEx(e.sTrCode, e.sRecordName);
             object[,] commdataex2 = (object[,])commdataex;
             int nrow = commdataex2.GetLength(0);
+            if(nrow <= 0)
+            {
+                exit2("data is empty");
+                return;
+            }
+
+
 
             Console.WriteLine("nrow=" + nrow);
+            dataex = commdataex2;
         }
 
         private static void Api_OnEventConnect(object sender, _DKHOpenAPIEvents_OnEventConnectEvent e)
@@ -166,13 +210,23 @@ namespace opt10081
             }
         }
 
+
+
+        static Thread mainth;
+
+
+
         [STAThread]
         static void Main(string[] args)
         {
+            mainth = Thread.CurrentThread;
             api = newapi();
             api.OnEventConnect += Api_OnEventConnect;
             if (api.CommConnect() == 0)
                 oncommconnect();
         }
+
+
+
     }
 }
