@@ -10,37 +10,89 @@ namespace opt10081
 {
     internal class Program
     {
-        class csvrow
+        static int toint(object x)
         {
-            // 종목코드
-            string jmcode;
-
-            // 현재가
-            int close;
-
-            // 거래량
-            int volume;
-
-            // 거래대금
-            int volmoney;
-
-            // 시가
-            int open;
-
-            // 고가
-            int high;
-
-            // 저가
-            int low;
-
-            // 수정주가구분
-            string mtype;
-
-            // 수정비율
-            float mratio;
+            return int.Parse(x.ToString());
         }
 
-        static AxKHOpenAPI api;
+        class csvrow : baserow
+        {
+            // 종목코드
+            public string jmcode;
+        }
+
+        class chartrow : baserow
+        {
+            // 일자
+            public string date;
+
+            public static chartrow get(object[,] dataex, int i)
+            {
+                string s(int x)
+                {
+                    return dataex[i, x].ToString();
+                }
+                int t(int x)
+                {
+                    return toint(dataex[i, x]);
+                }
+
+                var ret = new chartrow();
+                ret.close = t(1);
+                ret.volume = t(2);
+                ret.volmoney = t(3);
+                ret.date = s(4);
+                ret.open = t(5);
+                ret.high = t(6);
+                ret.low = t(7);
+                ret.mtype = s(8);
+                ret.mratio = float.Parse(s(9));
+
+                return ret;
+            }
+
+            public static chartrow[] get2(object[,] dataex)
+            {
+
+                int nrow = dataex.GetLength(0);
+
+                var ret = new chartrow[nrow];
+
+                for (int i = 0; i < nrow; i++)
+                    ret[i] = chartrow.get(dataex, i);
+
+                return ret;
+            }
+        }
+
+        class baserow
+        {
+            // 현재가
+            public int close;
+
+            // 거래량
+            public int volume;
+
+            // 거래대금
+            public int volmoney;
+
+            // 시가
+            public int open;
+
+            // 고가
+            public int high;
+
+            // 저가
+            public int low;
+
+            // 수정주가구분
+            public string mtype;
+
+            // 수정비율
+            public float mratio;
+        }
+
+        volatile static AxKHOpenAPI api;
         static AxKHOpenAPI newapi()
         {
             var a = new AxKHOpenAPI();
@@ -166,6 +218,9 @@ namespace opt10081
             exit();
         }
 
+        static chartrow[][] gatheredcrows;
+        const short MAXSIZE = 600;
+
         static void connected()
         {
             var target = normal();
@@ -173,6 +228,8 @@ namespace opt10081
             Console.WriteLine("target.Count=" + target.Count);
 
             api.OnReceiveTrData += Api_OnReceiveTrData;
+
+            gatheredcrows = new chartrow[MAXSIZE][];
 
             int i = 0;
             foreach (var jmcode in target)
@@ -197,6 +254,11 @@ namespace opt10081
                 }
 
                 // TODO: process data
+                var chartrows = chartrow.get2(dataex);
+                foreach(var crow in chartrows)
+                {
+
+                }
 
                 dataex = null;
 
@@ -213,7 +275,7 @@ namespace opt10081
             }
         }
 
-        static object[,] dataex;
+        volatile static object[,] dataex;
 
         private static void Api_OnReceiveTrData(object sender, _DKHOpenAPIEvents_OnReceiveTrDataEvent e)
         {
@@ -242,7 +304,7 @@ namespace opt10081
 
 
 
-        static Thread mainth;
+        volatile static Thread mainth;
 
 
 

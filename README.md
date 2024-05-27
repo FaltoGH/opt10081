@@ -1,7 +1,7 @@
 # opt10081 (incomplete)
 
 ## CSV file path format
-/(year)/(month)/(day)
+/data/(year)/(month)/(day)
 
 Each element has no leading zero.
 
