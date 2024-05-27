@@ -20,11 +20,21 @@ namespace opt10081
             // 종목코드
             public string jmcode;
 
-            public static csvrow fromcrow(chartrow x)
+            public csvrow(baserow x, string jmcode)
             {
-                var csrow = new csvrow();
+                close = x.close;
+                volume = x.volume;
+                volmoney = x.volmoney;
+                open = x.open;
+                high = x.high;
+                low = x.low;
+                mtype = x.mtype;
+                mratio = x.mratio;
 
+                this.jmcode = jmcode;
             }
+
+
         }
 
         class chartrow : baserow
@@ -264,13 +274,18 @@ namespace opt10081
                     Application.DoEvents();
                 }
 
-                // TODO: process data
+                // process data
                 var chartrows = chartrow.get2(dataex);
-                foreach(var crow in chartrows)
+                foreach (var crow in chartrows)
                 {
-                    crdict[crow.date] = 
+                    if (!crdict.ContainsKey(crow.date))
+                    {
+                        crdict[crow.date] = new List<csvrow>();
+                    }
+                    crdict[crow.date].Add(new csvrow(crow, jmcode));
                 }
 
+                // free data
                 dataex = null;
 
                 if (i % 100 == 99)
