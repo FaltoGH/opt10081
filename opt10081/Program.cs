@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
@@ -244,6 +245,32 @@ namespace opt10081
 
         static readonly Dictionary<string, List<csvrow>> crdict = new Dictionary<string, List<csvrow>>();
 
+        static string[] get3pieces(string yyyyMMdd)
+        {
+            return new string[] { yyyyMMdd.Substring(0, 4), yyyyMMdd.Substring(4, 2), yyyyMMdd.Substring(6, 2) };
+        }
+
+        static string getcsvfilename(string yyyyMMdd)
+        {
+            var threepieces = get3pieces(yyyyMMdd);
+            int[] threeints = Array.ConvertAll(threepieces, int.Parse);
+            return Path.Combine(programdir, "..", "..", "..", "data", threeints[0].ToString(), threeints[1].ToString(), threeints[2].ToString() + ".csv");
+        }
+
+        static void save2(string path, List<csvrow> csvrows)
+        {
+            
+        }
+
+        static void save()
+        {
+            foreach(var kvpair in crdict)
+            {
+                string path = getcsvfilename(kvpair.Key);
+                save2(path, kvpair.Value);
+            }
+        }
+
         static void connected()
         {
             var target = normal();
@@ -299,6 +326,11 @@ namespace opt10081
 
                 i++;
             }
+
+            save();
+
+            api.Dispose();
+            api = null;
         }
 
         volatile static object[,] dataex;
@@ -332,11 +364,13 @@ namespace opt10081
 
         volatile static Thread mainth;
 
+        static string programdir;
 
 
         [STAThread]
         static void Main(string[] args)
         {
+            programdir = Path.GetDirectoryName(typeof(Program).Assembly.Location);
             mainth = Thread.CurrentThread;
             api = newapi();
             api.OnEventConnect += Api_OnEventConnect;
