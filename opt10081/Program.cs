@@ -35,7 +35,11 @@ namespace opt10081
                 this.jmcode = jmcode;
             }
 
+            public override string ToString()
+            {
+                // TODO: Implement csvrow to csv row logic.
 
+            }
         }
 
         class chartrow : baserow
