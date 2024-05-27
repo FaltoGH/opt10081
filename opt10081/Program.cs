@@ -10,6 +10,36 @@ namespace opt10081
 {
     internal class Program
     {
+        class csvrow
+        {
+            // 종목코드
+            string jmcode;
+
+            // 현재가
+            int close;
+
+            // 거래량
+            int volume;
+
+            // 거래대금
+            int volmoney;
+
+            // 시가
+            int open;
+
+            // 고가
+            int high;
+
+            // 저가
+            int low;
+
+            // 수정주가구분
+            string mtype;
+
+            // 수정비율
+            float mratio;
+        }
+
         static AxKHOpenAPI api;
         static AxKHOpenAPI newapi()
         {
