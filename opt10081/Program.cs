@@ -19,11 +19,17 @@ namespace opt10081
         {
             // 종목코드
             public string jmcode;
+
+            public static csvrow fromcrow(chartrow x)
+            {
+                var csrow = new csvrow();
+
+            }
         }
 
         class chartrow : baserow
         {
-            // 일자
+            // 일자(yyyyMMdd)
             public string date;
 
             public static chartrow get(object[,] dataex, int i)
@@ -41,7 +47,15 @@ namespace opt10081
                 ret.close = t(1);
                 ret.volume = t(2);
                 ret.volmoney = t(3);
+
+                // yyyyMMdd
                 ret.date = s(4);
+                if(ret.date.Length != 8)
+                {
+                    exit2("date="+ret.date);
+                    return null;
+                }
+
                 ret.open = t(5);
                 ret.high = t(6);
                 ret.low = t(7);
@@ -218,8 +232,7 @@ namespace opt10081
             exit();
         }
 
-        static chartrow[][] gatheredcrows;
-        const short MAXSIZE = 600;
+        static readonly Dictionary<string, List<csvrow>> crdict = new Dictionary<string, List<csvrow>>();
 
         static void connected()
         {
@@ -228,8 +241,6 @@ namespace opt10081
             Console.WriteLine("target.Count=" + target.Count);
 
             api.OnReceiveTrData += Api_OnReceiveTrData;
-
-            gatheredcrows = new chartrow[MAXSIZE][];
 
             int i = 0;
             foreach (var jmcode in target)
@@ -257,7 +268,7 @@ namespace opt10081
                 var chartrows = chartrow.get2(dataex);
                 foreach(var crow in chartrows)
                 {
-
+                    crdict[crow.date] = 
                 }
 
                 dataex = null;
