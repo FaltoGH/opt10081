@@ -135,19 +135,22 @@ namespace opt10081
         volatile static AxKHOpenAPI api;
         static AxKHOpenAPI newapi()
         {
-            var a = new AxKHOpenAPI();
-            new Control().Controls.Add(a);
-            a.EndInit();
-            return a;
-        }
-
-        static void oncommconnect()
-        {
-            while (api != null && !api.IsDisposed)
+            AxKHOpenAPI ret = null;
+            var t = new Thread(() =>
+            {
+                var re = new AxKHOpenAPI();
+                new Control().Controls.Add(re);
+                re.EndInit();
+                ret = re;
+                Application.Run();
+            });
+            t.SetApartmentState(ApartmentState.STA);
+            t.Start();
+            while(ret == null)
             {
                 Thread.Sleep(1);
-                Application.DoEvents();
             }
+            return ret;
         }
 
         static readonly char[] semicl = new char[1] { ';' };
@@ -212,17 +215,20 @@ namespace opt10081
             target.ExceptWith(highyieldfund);
             target.ExceptWith(kotc);
 
-            // 보통주만 남기기
-            target.RemoveWhere(x => !isnormal(x));
+            api.Invoke((Action)delegate
+            {
+                // 보통주만 남기기
+                target.RemoveWhere(x => !isnormal(x));
 
-            // 스팩주 제외
-            target.RemoveWhere(isspac);
+                // 스팩주 제외
+                target.RemoveWhere(isspac);
 
-            // ETN 제외
-            target.RemoveWhere(is_etn);
+                // ETN 제외
+                target.RemoveWhere(is_etn);
 
-            // 정리매매 제외
-            target.RemoveWhere(cleaning);
+                // 정리매매 제외
+                target.RemoveWhere(cleaning);
+            });
 
 #if DEBUG
             delrand(dice, target, target.Count - 101);
@@ -416,15 +422,26 @@ namespace opt10081
             dataex = commdataex2;
         }
 
+        volatile static bool isconnected;
+
         private static void Api_OnEventConnect(object sender, _DKHOpenAPIEvents_OnEventConnectEvent e)
         {
             if (e.nErrCode == 0)
             {
-                connected();
+                isconnected = true;
             }
         }
 
-
+        static void login()
+        {
+            if (api.CommConnect() == 0)
+            {
+                while (!isconnected)
+                {
+                    Thread.Sleep(1);
+                }
+            }
+        }
 
         volatile static Thread mainth;
 
@@ -443,8 +460,10 @@ namespace opt10081
             mainth = Thread.CurrentThread;
             api = newapi();
             api.OnEventConnect += Api_OnEventConnect;
-            if (api.CommConnect() == 0)
-                oncommconnect();
+            login();
+
+            connected();
+
         }
 
 
