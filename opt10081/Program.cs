@@ -86,7 +86,24 @@ namespace opt10081
                 ret.high = t(6);
                 ret.low = t(7);
                 ret.mtype = s(8);
-                ret.mratio = float.Parse(s(9));
+                string smratio = s(9);
+                if (string.IsNullOrWhiteSpace(smratio) && string.IsNullOrWhiteSpace(ret.mtype))
+                {
+                    ret.mratio = 0;
+                }
+                else
+                {
+
+                    try
+                    {
+                        ret.mratio = float.Parse(smratio);
+                    }
+                    catch
+                    {
+                        Console.WriteLine("smratio=" + smratio);
+                        throw;
+                    }
+                }
 
                 return ret;
             }
@@ -133,6 +150,9 @@ namespace opt10081
         }
 
         volatile static AxKHOpenAPI api;
+
+        volatile static List<AxKHOpenAPI> apilist = new List<AxKHOpenAPI>();
+
         static AxKHOpenAPI newapi()
         {
             AxKHOpenAPI ret = null;
@@ -141,6 +161,7 @@ namespace opt10081
                 var re = new AxKHOpenAPI();
                 new Control().Controls.Add(re);
                 re.EndInit();
+                apilist.Add(re);
                 ret = re;
                 Application.Run();
             });
@@ -215,6 +236,8 @@ namespace opt10081
             target.ExceptWith(highyieldfund);
             target.ExceptWith(kotc);
 
+            // Following lambda function requires a plenty of api invoke function call,
+            // so it is efficient that the api thread calls them.
             api.Invoke((Action)delegate
             {
                 // 보통주만 남기기
@@ -231,7 +254,7 @@ namespace opt10081
             });
 
 #if DEBUG
-            delrand(dice, target, target.Count - 101);
+            delrand(dice, target, target.Count - 107);
 #endif
 
             return target;
@@ -282,7 +305,10 @@ namespace opt10081
 
         static void exit()
         {
-            api.Dispose();
+            foreach(var x in apilist)
+            {
+                x.Dispose();
+            }
             api = null;
             mainth.Abort();
             Application.Exit();
@@ -292,7 +318,7 @@ namespace opt10081
 
         static void exit2(object reason)
         {
-            Console.Error.WriteLine(reason);
+            Console.WriteLine(reason);
             exit();
         }
 
@@ -314,6 +340,7 @@ namespace opt10081
         static void save2(string path, List<csvrow> csvrows)
         {
             var contents = csvrows.ConvertAll(x => x.ToString());
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllLines(path, contents);
         }
 
@@ -399,8 +426,7 @@ namespace opt10081
 
             save();
 
-            api.Dispose();
-            api = null;
+            exit2("Done!");
         }
 
         volatile static object[,] dataex;

@@ -1,4 +1,4 @@
-# opt10081 (incomplete)
+# opt10081
 
 ## CSV file path format
 /data/(year)/(month)/(day)
