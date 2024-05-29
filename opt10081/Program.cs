@@ -223,6 +223,11 @@ namespace opt10081
 
             // 정리매매 제외
             target.RemoveWhere(cleaning);
+
+#if DEBUG
+            // TODO: N=Size of target. Remove N-101 elements randomly.
+#endif
+
             return target;
         }
 
@@ -293,13 +298,16 @@ namespace opt10081
         {
             var target = normal();
 
-            Console.WriteLine("target.Count=" + target.Count);
+            int n = target.Count;
+            Console.WriteLine("target.Count=" + n);
 
             api.OnReceiveTrData += Api_OnReceiveTrData;
 
             int i = 0;
             foreach (var jmcode in target)
             {
+                Console.WriteLine($"{jmcode} ({i}/{n})");
+
                 api.SetInputValue("종목코드", jmcode);
                 api.SetInputValue("수정주가구분", "0");
                 string rqname = newrqn();
@@ -337,6 +345,8 @@ namespace opt10081
                 {
                     api = newapi();
                     api.OnReceiveTrData += Api_OnReceiveTrData;
+
+                    Console.WriteLine("new api initialized");
                 }
 
                 // Wait 200ms to get idle
@@ -384,6 +394,7 @@ namespace opt10081
 
         static string programdir;
         static string datadir;
+        readonly static Random dice = new Random();
 
         [STAThread]
         static void Main(string[] args)
