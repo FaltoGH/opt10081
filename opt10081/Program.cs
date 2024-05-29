@@ -225,10 +225,37 @@ namespace opt10081
             target.RemoveWhere(cleaning);
 
 #if DEBUG
-            // TODO: N=Size of target. Remove N-101 elements randomly.
+            delrand(dice, target, target.Count - 101);
 #endif
 
             return target;
+        }
+
+        static void delrand<T>(Random dice, HashSet<T> x, int n)
+        {
+            if(x.Count <= n)
+            {
+                x.Clear();
+                return;
+            }
+
+            T[] arr = x.ToArray();
+            shuffle(dice, arr);
+            for(int i = 0; i < n; i++)
+            {
+                x.Remove(arr[i]);
+            }
+        }
+
+        static void shuffle<T>(Random dice, T[] array)
+        {
+            for(int i=0; i<array.Length-1; i++)
+            {
+                int r = dice.Next(i, array.Length);
+                T tmp = array[i];
+                array[i] = array[r];
+                array[r] = tmp;
+            }
         }
 
         static string newrqn()
@@ -303,6 +330,8 @@ namespace opt10081
 
             api.OnReceiveTrData += Api_OnReceiveTrData;
 
+            var TIMEOUT = new TimeSpan(0, 0, 4);
+
             int i = 0;
             foreach (var jmcode in target)
             {
@@ -320,11 +349,18 @@ namespace opt10081
                     return;
                 }
 
+                DateTime start = DateTime.Now;
+
                 // wait until data arrives
-                while(dataex == null)
+                while (dataex == null)
                 {
                     Thread.Sleep(1);
-                    Application.DoEvents();
+
+                    if(DateTime.Now - start > TIMEOUT)
+                    {
+                        exit2("TIMEOUT");
+                        return;
+                    }
                 }
 
                 // process data
