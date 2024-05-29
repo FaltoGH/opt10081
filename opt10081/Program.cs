@@ -11,9 +11,9 @@ namespace opt10081
 {
     internal class Program
     {
-        static int toint(object x)
+        static long tolong(object x)
         {
-            return int.Parse(x.ToString());
+            return long.Parse(x.ToString());
         }
 
         class csvrow : baserow
@@ -35,10 +35,21 @@ namespace opt10081
                 this.jmcode = jmcode;
             }
 
+            static string escape(string x)
+            {
+                // This follows RFC 4180.
+                // A -> "A"
+                // A"S -> "A""S"
+                // A,S -> "A,S"
+                // A S -> "A S"
+
+                x = x.Replace("\"", "\"\"");
+                return '"' + x + '"';
+            }
+
             public override string ToString()
             {
-                // TODO: Implement csvrow to csv row logic.
-
+                return string.Join(",", new object[] { escape(jmcode), close, volume, volmoney, open, high, low, escape(mtype), mratio });
             }
         }
 
@@ -53,9 +64,9 @@ namespace opt10081
                 {
                     return dataex[i, x].ToString();
                 }
-                int t(int x)
+                long t(int x)
                 {
-                    return toint(dataex[i, x]);
+                    return tolong(dataex[i, x]);
                 }
 
                 var ret = new chartrow();
@@ -97,22 +108,22 @@ namespace opt10081
         class baserow
         {
             // 현재가
-            public int close;
+            public long close;
 
             // 거래량
-            public int volume;
+            public long volume;
 
             // 거래대금
-            public int volmoney;
+            public long volmoney;
 
             // 시가
-            public int open;
+            public long open;
 
             // 고가
-            public int high;
+            public long high;
 
             // 저가
-            public int low;
+            public long low;
 
             // 수정주가구분
             public string mtype;
@@ -247,6 +258,7 @@ namespace opt10081
             exit();
         }
 
+        // crdict[yyyyMMdd] = yyyyMMdd's daily chart data of all jongmoks
         static readonly Dictionary<string, List<csvrow>> crdict = new Dictionary<string, List<csvrow>>();
 
         static string[] get3pieces(string yyyyMMdd)
@@ -258,18 +270,20 @@ namespace opt10081
         {
             var threepieces = get3pieces(yyyyMMdd);
             int[] threeints = Array.ConvertAll(threepieces, int.Parse);
-            return Path.Combine(programdir, "..", "..", "..", "data", threeints[0].ToString(), threeints[1].ToString(), threeints[2].ToString() + ".csv");
+            return Path.Combine(datadir, threeints[0].ToString(), threeints[1].ToString(), threeints[2].ToString() + ".csv");
         }
 
         static void save2(string path, List<csvrow> csvrows)
         {
-            
+            var contents = csvrows.ConvertAll(x => x.ToString());
+            File.WriteAllLines(path, contents);
         }
 
         static void save()
         {
             foreach(var kvpair in crdict)
             {
+
                 string path = getcsvfilename(kvpair.Key);
                 save2(path, kvpair.Value);
             }
@@ -369,12 +383,16 @@ namespace opt10081
         volatile static Thread mainth;
 
         static string programdir;
-
+        static string datadir;
 
         [STAThread]
         static void Main(string[] args)
         {
             programdir = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+            datadir = Path.Combine(programdir, "..", "..", "..", "data");
+            datadir = Path.GetFullPath(datadir);
+            Directory.CreateDirectory(datadir);
+
             mainth = Thread.CurrentThread;
             api = newapi();
             api.OnEventConnect += Api_OnEventConnect;
